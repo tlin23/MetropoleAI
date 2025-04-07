@@ -1,2 +1,6 @@
 fastapi
 uvicorn
+llama-index
+PyPDF2
+google-api-python-client
+google-auth
