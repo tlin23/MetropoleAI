@@ -14,7 +14,13 @@ import datetime
 import html2text
 import fitz  # PyMuPDF
 from tqdm import tqdm
-from crawler_utils import fetch_page, extract_internal_links
+from bs4 import BeautifulSoup
+from crawler_utils import (
+    fetch_page, 
+    extract_internal_links, 
+    extract_page_data, 
+    extract_pdf_text
+)
 
 # Constants
 BASE_URL = "https://sites.google.com/view/metropoleballard/home"
@@ -50,8 +56,15 @@ def run_crawler() -> None:
     visited_urls = set()
     pages_data = []
     url_visit_count = {}  # Dictionary to track how many times each URL is visited
+    pdf_stats = {
+        "total_detected": 0,
+        "requires_download": 0,
+        "extraction_attempted": 0,
+        "extraction_succeeded": 0,
+        "extraction_failed": 0
+    }
     
-    def crawl_page(url, depth, visited_urls, pages_data, log_file):
+    def crawl_page(url, depth, visited_urls, pages_data, pdf_stats, log_file):
         """
         Recursively crawl pages starting from the given URL up to the specified depth.
         
@@ -104,12 +117,69 @@ def run_crawler() -> None:
         print(log_message)
         log_file.write(log_message + "\n")
         
-        # Store page data (placeholder for now, will be expanded in step 3)
-        page_data = {
-            "url": url,
-            "title": "",  # Will be extracted in step 3
-            "content": ""  # Will be extracted in step 3
-        }
+        # Extract and store page data
+        page_data = extract_page_data(url, content)
+        
+        # Log extraction results
+        log_message = f"  Extracted title: '{page_data['title']}'"
+        print(log_message)
+        log_file.write(log_message + "\n")
+        
+        content_preview = page_data['content'][:100] + "..." if len(page_data['content']) > 100 else page_data['content']
+        log_message = f"  Content preview: {content_preview}"
+        print(log_message)
+        log_file.write(log_message + "\n")
+        
+        # Process PDF links
+        pdf_links = page_data.pop('pdf_links', [])  # Remove from page_data and get the list
+        if pdf_links:
+            pdf_stats["total_detected"] += len(pdf_links)
+            log_message = f"  Found {len(pdf_links)} PDF links on page"
+            print(log_message)
+            log_file.write(log_message + "\n")
+            
+            # Process each PDF link
+            for pdf_link in pdf_links:
+                pdf_url = pdf_link['url']
+                pdf_text = pdf_link['text']
+                
+                if pdf_link['requires_download']:
+                    pdf_stats["requires_download"] += 1
+                    log_message = f"  Skipping PDF that requires download: {pdf_text} ({pdf_url})"
+                    print(log_message)
+                    log_file.write(log_message + "\n")
+                    continue
+                
+                # Try to extract text from the PDF
+                log_message = f"  Attempting to extract text from PDF: {pdf_text} ({pdf_url})"
+                print(log_message)
+                log_file.write(log_message + "\n")
+                
+                pdf_stats["extraction_attempted"] += 1
+                success, pdf_content = extract_pdf_text(pdf_url)
+                
+                if success:
+                    pdf_stats["extraction_succeeded"] += 1
+                    # Add PDF text to page data
+                    if "pdf_text" not in page_data:
+                        page_data["pdf_text"] = {}
+                    
+                    page_data["pdf_text"][pdf_url] = {
+                        "title": pdf_text,
+                        "content": pdf_content
+                    }
+                    
+                    pdf_preview = pdf_content[:100] + "..." if len(pdf_content) > 100 else pdf_content
+                    log_message = f"  Successfully extracted PDF text. Preview: {pdf_preview}"
+                    print(log_message)
+                    log_file.write(log_message + "\n")
+                else:
+                    pdf_stats["extraction_failed"] += 1
+                    log_message = f"  Failed to extract PDF text: {pdf_content}"
+                    print(log_message)
+                    log_file.write(log_message + "\n")
+        
+        # Add the processed page data to our collection
         pages_data.append(page_data)
         
         # Recursively crawl internal links
@@ -133,16 +203,21 @@ def run_crawler() -> None:
             time.sleep(delay)
             
             # Crawl the link
-            crawl_page(link, depth + 1, visited_urls, pages_data, log_file)
+            crawl_page(link, depth + 1, visited_urls, pages_data, pdf_stats, log_file)
     
     # Start crawling from the base URL
     with open(log_file_path, "a") as log_file:
-        crawl_page(BASE_URL, 0, visited_urls, pages_data, log_file)
+        crawl_page(BASE_URL, 0, visited_urls, pages_data, pdf_stats, log_file)
         
         # Log crawl statistics
         log_message = f"\nCrawl Statistics:"
         log_message += f"\n  Total pages visited: {len(visited_urls)}"
         log_message += f"\n  Total pages with data: {len(pages_data)}"
+        log_message += f"\n  Total PDF links detected: {pdf_stats['total_detected']}"
+        log_message += f"\n  PDFs requiring download (skipped): {pdf_stats['requires_download']}"
+        log_message += f"\n  PDF text extraction attempts: {pdf_stats['extraction_attempted']}"
+        log_message += f"\n  Successful PDF extractions: {pdf_stats['extraction_succeeded']}"
+        log_message += f"\n  Failed PDF extractions: {pdf_stats['extraction_failed']}"
         print(log_message)
         log_file.write(log_message + "\n")
         
@@ -166,11 +241,12 @@ def run_crawler() -> None:
             print(log_message)
             log_file.write(log_message + "\n")
     
-    # TODO: Implement content extraction
+    # Content extraction has been implemented ✓
+    # PDF handling has been implemented ✓
     
-    # TODO: Implement PDF handling
-    
-    # TODO: Save output to JSON
+    # Save output to JSON
+    with open(output_json_path, "w", encoding="utf-8") as json_file:
+        json.dump(pages_data, json_file, indent=2, ensure_ascii=False)
     
     # TODO: Validate results
     
@@ -178,6 +254,7 @@ def run_crawler() -> None:
     with open(log_file_path, "a") as log_file:
         log_file.write(f"\nMetropole Crawler completed at: {datetime.datetime.now()}\n")
         log_file.write(f"Output saved to: {output_json_path}\n")
+        log_file.write(f"Total pages extracted: {len(pages_data)}\n")
     
     print(f"Crawling complete!")
     print(f"Output saved to: {output_json_path}")
