@@ -45,6 +45,7 @@ service_account.json
 *.db
 chat_logs.db
 test_index/
+metropole_crawler/data/
 
 # Jupyter Notebook
 .ipynb_checkpoints
