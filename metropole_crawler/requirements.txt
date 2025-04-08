@@ -1,5 +1,11 @@
+# Core dependencies
 requests==2.31.0
 beautifulsoup4==4.12.2
 lxml==4.9.3
 html2text==2024.2.26
 tqdm==4.66.1
+
+# Testing dependencies
+pytest==7.4.0
+pytest-cov==4.1.0
+requests-mock==1.11.0

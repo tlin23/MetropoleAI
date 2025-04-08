@@ -8,27 +8,15 @@ in JSON format for downstream ingestion by LLM systems.
 
 import os
 import json
-import time
-import random
 import datetime
-import re
-import html2text
-from tqdm import tqdm
-from bs4 import BeautifulSoup
-from typing import Dict, List, Any, Set, Tuple, Optional
+from typing import Dict, List, Any, Set
 from crawler_utils import (
-    fetch_page, 
-    extract_internal_links, 
-    extract_page_data
+    validate_crawled_data,
+    crawl_page
 )
 from logging_utils import (
     setup_crawler_logger,
     log_crawler_start,
-    log_url_visit,
-    log_url_skip,
-    log_fetch_error,
-    log_extraction_results,
-    log_links_found,
     log_crawl_statistics,
     log_output_info,
     log_validation_results,
@@ -42,179 +30,6 @@ MAX_DEPTH = 2
 MAX_RETRIES = 2
 RETRY_DELAY = 2  # seconds
 DATA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data")
-
-def validate_crawled_data(pages_data: List[Dict[str, Any]]) -> Dict[str, Any]:
-    """
-    Validate the crawled data for completeness and quality.
-    
-    Args:
-        pages_data (List[Dict[str, Any]]): List of page data dictionaries
-        
-    Returns:
-        Dict[str, Any]: Validation results
-    """
-    total_pages = len(pages_data)
-    valid_pages = 0
-    problematic_pages = 0
-    
-    # Initialize validation result structure
-    validation_results = {
-        "total_pages": total_pages,
-        "valid_pages": 0,
-        "problematic_pages": 0,
-        "pages_with_url": 0,
-        "pages_with_title": 0,
-        "pages_with_content": 0,
-        "missing_url": [],
-        "empty_titles": [],
-        "empty_content": [],
-        "short_content": [],
-        "malformed_urls": []
-    }
-    
-    # URL validation regex pattern
-    url_pattern = re.compile(r'^https?://[^\s/$.?#].[^\s]*$')
-    
-    # Validate each page
-    for page in pages_data:
-        page_valid = True
-        
-        # Check URL
-        if "url" not in page or not page["url"]:
-            validation_results["missing_url"].append("Unknown URL (missing field)")
-            page_valid = False
-        else:
-            validation_results["pages_with_url"] += 1
-            # Check if URL is well-formed
-            if not url_pattern.match(page["url"]):
-                validation_results["malformed_urls"].append(page["url"])
-                page_valid = False
-        
-        # Check title
-        if "title" not in page or not page["title"]:
-            url = page.get("url", "Unknown URL")
-            validation_results["empty_titles"].append(url)
-            page_valid = False
-        else:
-            validation_results["pages_with_title"] += 1
-        
-        # Check content
-        if "content" not in page or not page["content"]:
-            url = page.get("url", "Unknown URL")
-            validation_results["empty_content"].append(url)
-            page_valid = False
-        else:
-            validation_results["pages_with_content"] += 1
-            # Check content length (less than 100 chars might indicate poor extraction)
-            if len(page["content"]) < 100:
-                url = page.get("url", "Unknown URL")
-                validation_results["short_content"].append((url, len(page["content"])))
-                # Short content is a warning, not an error
-        
-        # Update valid/problematic counts
-        if page_valid:
-            valid_pages += 1
-        else:
-            problematic_pages += 1
-    
-    # Update summary counts
-    validation_results["valid_pages"] = valid_pages
-    validation_results["problematic_pages"] = problematic_pages
-    
-    return validation_results
-
-def crawl_page(url: str, depth: int, visited_urls: Set[str], pages_data: List[Dict[str, Any]], 
-               url_visit_count: Dict[str, int], logger: Any) -> None:
-    """
-    Recursively crawl pages starting from the given URL up to the specified depth.
-    
-    Args:
-        url (str): URL to crawl
-        depth (int): Current depth level
-        visited_urls (set): Set of already visited URLs
-        pages_data (list): List to store page data
-        url_visit_count (dict): Dictionary to track URL visit attempts
-        logger (logging.Logger): Logger instance
-        
-    Returns:
-        None
-    """
-    # Track URL visit attempts (for debugging)
-    url_visit_count[url] = url_visit_count.get(url, 0) + 1
-    
-    # Check if URL has already been visited
-    if url in visited_urls:
-        log_url_skip(logger, url, "already visited URL", url_visit_count[url])
-        return
-    
-    # Check if we've reached the maximum depth
-    if depth > MAX_DEPTH:
-        log_url_skip(logger, url, "URL due to depth limit")
-        return
-    
-    # Add URL to visited set
-    visited_urls.add(url)
-    
-    # Log the visit
-    log_url_visit(logger, url, depth, url_visit_count[url])
-    
-    # Fetch the page with retries
-    success = False
-    content = None
-    retries = 0
-    
-    while not success and retries <= MAX_RETRIES:
-        if retries > 0:
-            # Add exponential backoff delay for retries
-            backoff_delay = RETRY_DELAY * (2 ** (retries - 1))
-            logger.info(f"  Retry #{retries} after {backoff_delay}s delay...")
-            time.sleep(backoff_delay)
-            
-        success, content = fetch_page(url)
-        
-        if not success:
-            retries += 1
-            if retries <= MAX_RETRIES:
-                logger.warning(f"  Fetch failed: {content}. Retrying...")
-            else:
-                log_fetch_error(logger, f"{content} (after {MAX_RETRIES} retries)")
-                return
-    
-    # Extract internal links
-    internal_links = extract_internal_links(url, content, DOMAIN)
-    log_links_found(logger, len(internal_links))
-    
-    # Extract and store page data
-    page_data = extract_page_data(url, content)
-    
-    # Log extraction results
-    log_extraction_results(logger, page_data['title'], page_data['content'])
-    
-    # Remove PDF links from page data if present
-    if 'pdf_links' in page_data:
-        page_data.pop('pdf_links')
-    
-    # Add the processed page data to our collection
-    pages_data.append(page_data)
-    
-    # Recursively crawl internal links
-    for link in internal_links:
-        # Skip links that have already been visited
-        if link in visited_urls:
-            log_url_skip(logger, link, "already visited URL")
-            continue
-            
-        # Skip links that would exceed the depth limit
-        if depth + 1 > MAX_DEPTH:
-            log_url_skip(logger, link, "URL due to depth limit")
-            continue
-            
-        # Add random delay between requests (1-2 seconds)
-        delay = 1 + random.random()
-        time.sleep(delay)
-        
-        # Crawl the link
-        crawl_page(link, depth + 1, visited_urls, pages_data, url_visit_count, logger)
 
 
 def run_crawler() -> None:
@@ -242,7 +57,8 @@ def run_crawler() -> None:
     
     # Start crawling from the base URL
     try:
-        crawl_page(BASE_URL, 0, visited_urls, pages_data, url_visit_count, logger)
+        crawl_page(BASE_URL, 0, visited_urls, pages_data, url_visit_count, logger, 
+                  MAX_DEPTH, MAX_RETRIES, RETRY_DELAY, DOMAIN)
     except Exception as e:
         logger.error(f"Unexpected error during crawling: {str(e)}")
     
