@@ -140,19 +140,6 @@ Enhance the React chat UI to allow uploading `.jpg`, `.png`, or `.txt` files. Se
 
 ---
 
-### **Step 2.5: Backend File Upload Handler**
-**Tasks:**
-- Add `/upload` endpoint to FastAPI.
-- Parse text file or image content (OCR stub for now).
-- Return parsed result to frontend for context.
-
-**Prompt:**
-```
-Add a `/upload` POST endpoint to FastAPI that accepts image or text files. Return basic placeholder text for OCR for now. Limit file size to 10MB.
-```
-
----
-
 ## 🔗 Phase 3: Integration, Logging, Testing
 
 ### Goal: Wire everything together, add logging, polish responses.

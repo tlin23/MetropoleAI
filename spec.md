@@ -96,10 +96,6 @@ Content may include:
 - If the agent doesn’t have a good answer:
   > “I don’t have building-specific information on that yet. You may want to contact the board or check back later.”
 
-### File uploads
-- Limit upload size to ~10MB.
-- Accept only `.jpg`, `.png`, and `.txt` for MVP.
-
 ---
 
 ## 📊 Logging & Monitoring
