@@ -21,6 +21,12 @@ Before retraining the model, ensure you have:
 The project includes a dedicated script for retraining the model:
 
 ```bash
+python -m model.retrain
+```
+
+Alternatively, for backward compatibility, you can still use:
+
+```bash
 python retrain_model.py
 ```
 
@@ -28,7 +34,7 @@ This script will:
 1. List all PDFs in your Google Drive folder
 2. Download and extract text from each PDF
 3. Build a new index from the extracted texts
-4. Save the index to the `index` directory
+4. Save the index to the `model/index` directory
 
 ### When to Retrain
 

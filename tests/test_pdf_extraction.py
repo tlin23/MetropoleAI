@@ -3,7 +3,7 @@ import os
 import shutil
 from unittest.mock import patch, MagicMock
 from utils.drive_utils import list_pdfs, download_pdf_and_extract_text
-from utils.index_utils import build_index_from_texts, load_index
+from model.index import build_index_from_texts, load_index
 from config import FOLDER_ID
 
 class TestPdfExtraction(unittest.TestCase):

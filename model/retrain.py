@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Script to retrain the model by rebuilding the index from PDFs in Google Drive.
-Usage: python retrain_model.py
+Usage: python -m model.retrain
 """
 
 import os
@@ -9,7 +9,7 @@ import logging
 from typing import List
 from config import FOLDER_ID
 from utils.drive_utils import list_pdfs, download_pdf_and_extract_text
-from utils.index_utils import build_index_from_texts
+from model.index import build_index_from_texts
 
 # Configure logging
 logging.basicConfig(
@@ -18,7 +18,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-def retrain_model(folder_id: str = FOLDER_ID, index_dir: str = "index") -> None:
+def retrain_model(folder_id: str = FOLDER_ID, index_dir: str = "model/index") -> None:
     """
     Retrain the model by rebuilding the index from PDFs in Google Drive.
     

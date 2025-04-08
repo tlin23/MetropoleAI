@@ -1,7 +1,7 @@
 # load app from terminal: uvicorn main:app --reload 
 
 from fastapi import FastAPI
-from utils.index_utils import load_index
+from model.index import load_index
 from utils.logging_utils import init_db, log_interaction
 from utils.app_utils import fallback_response, AskRequest
 from config import OPENAI_API_KEY

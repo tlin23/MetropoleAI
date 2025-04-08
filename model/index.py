@@ -1,3 +1,7 @@
+"""
+Index utilities for building and loading vector indices.
+"""
+
 from sentence_transformers import SentenceTransformer
 import faiss
 import numpy as np
@@ -12,6 +16,7 @@ logger = logging.getLogger(__name__)
 
 # Default model for sentence embeddings
 DEFAULT_MODEL = "all-MiniLM-L6-v2"
+DEFAULT_INDEX_DIR = "model/index"
 
 class HuggingFaceIndex:
     """
@@ -103,7 +108,7 @@ class StorageContext:
             self.persist_dir = persist_dir
 
 # Build an index from a list of raw text strings
-def build_index_from_texts(texts: List[str], index_dir: str = "index") -> HuggingFaceIndex:
+def build_index_from_texts(texts: List[str], index_dir: str = DEFAULT_INDEX_DIR) -> HuggingFaceIndex:
     """
     Build a vector index from a list of text strings and persist it to disk.
     
@@ -142,7 +147,7 @@ def build_index_from_texts(texts: List[str], index_dir: str = "index") -> Huggin
     return index
 
 # Load the index from disk
-def load_index(index_dir: str = "index") -> Optional[HuggingFaceIndex]:
+def load_index(index_dir: str = DEFAULT_INDEX_DIR) -> Optional[HuggingFaceIndex]:
     """
     Load a previously saved index from disk.
     
