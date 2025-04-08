@@ -4,11 +4,11 @@ from fastapi import FastAPI
 from pydantic import BaseModel
 from utils.index_utils import load_index
 from utils.logging_utils import init_db, log_interaction
+from config import OPENAI_API_KEY
 
-import os
 import openai
 
-openai.api_key = os.getenv("OPENAI_API_KEY")
+openai.api_key = OPENAI_API_KEY
 
 app = FastAPI()
 
