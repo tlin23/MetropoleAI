@@ -1,3 +1,3 @@
 """
-Model package for handling model retraining and index operations.
+Model package for handling model training and index operations.
 """
