@@ -1,9 +1,9 @@
 # load app from terminal: uvicorn main:app --reload 
 
 from fastapi import FastAPI
-from pydantic import BaseModel
 from utils.index_utils import load_index
 from utils.logging_utils import init_db, log_interaction
+from utils.app_utils import fallback_response, AskRequest
 from config import OPENAI_API_KEY
 
 import openai
@@ -22,23 +22,6 @@ index = load_index()
 async def ping():
     return {"status": "ok"}
 
-class AskRequest(BaseModel):
-    question: str
-
-def fallback_response(question: str) -> str:
-    response = openai.ChatCompletion.create(
-        model="gpt-3.5-turbo",  # or "gpt-4" if you're using GPT-4
-        messages=[
-            {"role": "system", "content": "You are a helpful assistant for apartment residents."},
-            {"role": "user", "content": question}
-        ],
-        temperature=0.7
-    )
-
-    answer = response['choices'][0]['message']['content']
-    return "This is based on general knowledge and not specific to the building.\n" + answer
-
-# 
 @app.post("/ask")
 async def ask(request: AskRequest):
     if not index:
