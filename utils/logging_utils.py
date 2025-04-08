@@ -1,10 +1,20 @@
 import sqlite3
 from datetime import datetime
 import logging
+import os
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+def get_db_path():
+    """
+    Get the database path from the environment variable or use the default.
+    
+    Returns:
+        str: The database path
+    """
+    return os.environ.get("DB_PATH", "chat_logs.db")
 
 def init_db():
     """
@@ -12,7 +22,8 @@ def init_db():
     Creates a table called chat_logs if it doesn't exist.
     """
     try:
-        conn = sqlite3.connect('chat_logs.db')
+        db_path = get_db_path()
+        conn = sqlite3.connect(db_path)
         cursor = conn.cursor()
         cursor.execute('''
         CREATE TABLE IF NOT EXISTS chat_logs (
@@ -38,7 +49,8 @@ def log_interaction(question: str, response: str):
     """
     try:
         timestamp = datetime.now().isoformat()
-        conn = sqlite3.connect('chat_logs.db')
+        db_path = get_db_path()
+        conn = sqlite3.connect(db_path)
         cursor = conn.cursor()
         cursor.execute(
             'INSERT INTO chat_logs (timestamp, question, response) VALUES (?, ?, ?)',
