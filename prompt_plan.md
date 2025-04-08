@@ -98,7 +98,7 @@ Enhance the `/ask` endpoint to include a fallback using OpenAI GPT-3.5 if LlamaI
 
 **Prompt:**
 ```
-Set up a React app with Tailwind CSS. Create a full-screen layout with a central chat window, fixed input box, and scrolling message area.
+Set up a React app. Create a full-screen layout with a central chat window, fixed input box, and scrolling message area.
 ```
 
 ---
