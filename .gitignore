@@ -42,6 +42,9 @@ index/
 *.log
 service_account.json
 *.pdf
+*.db
+chat_logs.db
+test_index/
 
 # Jupyter Notebook
 .ipynb_checkpoints
