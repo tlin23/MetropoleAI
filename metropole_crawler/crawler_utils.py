@@ -2,14 +2,12 @@
 Utility functions for the Metropole Webcrawler.
 
 This module contains helper functions for fetching pages, extracting links,
-content extraction, text cleaning, PDF handling, and other utilities used by the main crawler.
+content extraction, text cleaning, and other utilities used by the main crawler.
 """
 
 import requests
 import html2text
 import re
-import io
-import fitz  # PyMuPDF
 from bs4 import BeautifulSoup
 
 def fetch_page(url, timeout=10):
@@ -180,86 +178,6 @@ def extract_content(html_content):
     
     return title, cleaned_content
 
-def detect_pdf_links(soup):
-    """
-    Detect links to PDF files in the HTML content.
-    
-    Args:
-        soup (BeautifulSoup): Parsed HTML content
-        
-    Returns:
-        list: List of dictionaries containing PDF link information
-              Each dict has 'url', 'text', and 'requires_download' keys
-    """
-    pdf_links = []
-    
-    # Find all links in the page
-    for a_tag in soup.find_all('a', href=True):
-        href = a_tag['href']
-        link_text = a_tag.get_text().strip()
-        
-        # Check if the link points to a PDF file
-        if href.lower().endswith('.pdf') or 'pdf' in href.lower():
-            # Determine if the PDF requires download
-            # Google Drive links, Dropbox links, etc. typically require download
-            requires_download = any(domain in href.lower() for domain in [
-                'drive.google.com', 'docs.google.com/document', 
-                'dropbox.com', 'box.com', 'onedrive.live.com'
-            ])
-            
-            pdf_links.append({
-                'url': href,
-                'text': link_text or "PDF Document",
-                'requires_download': requires_download
-            })
-    
-    return pdf_links
-
-def extract_pdf_text(pdf_url):
-    """
-    Extract text from a PDF file.
-    
-    Args:
-        pdf_url (str): URL of the PDF file
-        
-    Returns:
-        tuple: (success, text_content or error_message)
-    """
-    try:
-        # Fetch the PDF file
-        response = requests.get(pdf_url, timeout=15)
-        response.raise_for_status()
-        
-        # Create a file-like object from the response content
-        pdf_stream = io.BytesIO(response.content)
-        
-        # Open the PDF with PyMuPDF
-        try:
-            pdf_document = fitz.open(stream=pdf_stream, filetype="pdf")
-            
-            # Extract text from each page
-            text_content = []
-            for page_num in range(len(pdf_document)):
-                page = pdf_document[page_num]
-                text_content.append(page.get_text())
-            
-            # Close the document
-            pdf_document.close()
-            
-            # Join all pages' text with double newlines
-            full_text = "\n\n".join(text_content)
-            
-            # If we got text, return success
-            if full_text.strip():
-                return True, full_text
-            else:
-                return False, "PDF contains no extractable text (may be scanned or image-based)"
-                
-        except Exception as e:
-            return False, f"Error parsing PDF: {str(e)}"
-            
-    except requests.RequestException as e:
-        return False, f"Error fetching PDF {pdf_url}: {str(e)}"
 
 def extract_page_data(url, html_content):
     """
@@ -270,23 +188,16 @@ def extract_page_data(url, html_content):
         html_content (str): HTML content of the page
         
     Returns:
-        dict: Structured page data with url, title, content, and pdf_links
+        dict: Structured page data with url, title, and content
     """
-    # Parse HTML with BeautifulSoup
-    soup = BeautifulSoup(html_content, 'lxml')
-    
     # Extract title and content
     title, content = extract_content(html_content)
-    
-    # Detect PDF links
-    pdf_links = detect_pdf_links(soup)
     
     # Create structured data object
     page_data = {
         "url": url,
         "title": title,
-        "content": content,
-        "pdf_links": pdf_links
+        "content": content
     }
     
     return page_data

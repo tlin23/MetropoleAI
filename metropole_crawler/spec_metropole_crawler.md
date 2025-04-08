@@ -4,7 +4,7 @@
 
 ## ✅ Overview
 
-This module implements a structured, on-demand webcrawler for the [Metropole Ballard website](https://sites.google.com/view/metropoleballard/home). It extracts visible text content and PDF data from the site’s internal pages, applies text cleanup, and outputs structured data in JSON format for downstream ingestion by LLM systems (e.g., LlamaIndex).
+This module implements a structured, on-demand webcrawler for the [Metropole Ballard website](https://sites.google.com/view/metropoleballard/home). It extracts visible text content from the site's internal pages, applies text cleanup, and outputs structured data in JSON format for downstream ingestion by LLM systems (e.g., LlamaIndex).
 
 ---
 
@@ -39,10 +39,8 @@ def run_crawler() -> None:
 For each page:
 - Extract **visible text content only**
 - Extract **page title** (from `<title>` or first `<h1>`)
-- Extract text from **embedded or inline PDFs** (if renderable without download)
-- **Skip** PDFs that require download or are password-protected/corrupt
 - **Clean up content**:
-  - Remove navigation, headers/footers, buttons like “Back to Top”
+  - Remove navigation, headers/footers, buttons like "Back to Top"
   - Strip excessive whitespace, blank lines, HTML noise
   - Remove repeated boilerplate ("Metropole HOA", etc.)
   - Filter out very short fragments (< 5 words)
@@ -64,8 +62,7 @@ For each page:
   {
     "title": "Building Rules",
     "url": "https://sites.google.com/view/metropoleballard/rules",
-    "content": "Visible cleaned text...",
-    "pdf_text": "PDF content if available, else omitted"
+    "content": "Visible cleaned text..."
   },
   ...
 ]
@@ -82,7 +79,6 @@ For each page:
 - Timestamp of crawl
 - Pages visited
 - Pages skipped (with reason)
-- PDFs skipped (password/corrupt/download-required)
 - Output JSON path
 - Validation results (missing fields, empty content, etc.)
 
@@ -100,13 +96,12 @@ After crawl:
 - ✅ Count and report:
   - Pages crawled
   - Pages skipped
-  - PDF issues
 
 ---
 
 ## 🔐 Privacy & Compliance
 - Do **not extract or store** any personally identifiable information (PII)
-- PDFs or content referencing individuals (e.g., email addresses) should be ignored if not anonymized
+- Content referencing individuals (e.g., email addresses) should be ignored if not anonymized
 - All logs and outputs are local-only (no remote sync)
 
 ---
@@ -117,7 +112,6 @@ After crawl:
 - Catch and log:
   - HTTP errors
   - Timeout errors
-  - PDF parsing errors
 - Skip and log:
   - Pages with no visible content
   - Duplicate pages (by URL)
@@ -129,7 +123,6 @@ After crawl:
 
 - **Requests / HTTPX** – page fetch
 - **BeautifulSoup** – HTML parsing
-- **PyMuPDF** or **pdfminer.six** – inline PDF extraction
 - **re / html2text / lxml** – for text cleanup
 - **json, os, datetime, logging** – system I/O
 
