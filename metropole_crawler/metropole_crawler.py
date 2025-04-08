@@ -11,9 +11,11 @@ import json
 import time
 import random
 import datetime
+import re
 import html2text
 from tqdm import tqdm
 from bs4 import BeautifulSoup
+from typing import Dict, List, Any
 from crawler_utils import (
     fetch_page, 
     extract_internal_links, 
@@ -38,6 +40,86 @@ BASE_URL = "https://sites.google.com/view/metropoleballard/home"
 DOMAIN = "sites.google.com/view/metropoleballard"
 MAX_DEPTH = 2
 DATA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data")
+
+def validate_crawled_data(pages_data: List[Dict[str, Any]]) -> Dict[str, Any]:
+    """
+    Validate the crawled data for completeness and quality.
+    
+    Args:
+        pages_data (List[Dict[str, Any]]): List of page data dictionaries
+        
+    Returns:
+        Dict[str, Any]: Validation results
+    """
+    total_pages = len(pages_data)
+    valid_pages = 0
+    problematic_pages = 0
+    
+    # Initialize validation result structure
+    validation_results = {
+        "total_pages": total_pages,
+        "valid_pages": 0,
+        "problematic_pages": 0,
+        "pages_with_url": 0,
+        "pages_with_title": 0,
+        "pages_with_content": 0,
+        "missing_url": [],
+        "empty_titles": [],
+        "empty_content": [],
+        "short_content": [],
+        "malformed_urls": []
+    }
+    
+    # URL validation regex pattern
+    url_pattern = re.compile(r'^https?://[^\s/$.?#].[^\s]*$')
+    
+    # Validate each page
+    for page in pages_data:
+        page_valid = True
+        
+        # Check URL
+        if "url" not in page or not page["url"]:
+            validation_results["missing_url"].append("Unknown URL (missing field)")
+            page_valid = False
+        else:
+            validation_results["pages_with_url"] += 1
+            # Check if URL is well-formed
+            if not url_pattern.match(page["url"]):
+                validation_results["malformed_urls"].append(page["url"])
+                page_valid = False
+        
+        # Check title
+        if "title" not in page or not page["title"]:
+            url = page.get("url", "Unknown URL")
+            validation_results["empty_titles"].append(url)
+            page_valid = False
+        else:
+            validation_results["pages_with_title"] += 1
+        
+        # Check content
+        if "content" not in page or not page["content"]:
+            url = page.get("url", "Unknown URL")
+            validation_results["empty_content"].append(url)
+            page_valid = False
+        else:
+            validation_results["pages_with_content"] += 1
+            # Check content length (less than 100 chars might indicate poor extraction)
+            if len(page["content"]) < 100:
+                url = page.get("url", "Unknown URL")
+                validation_results["short_content"].append((url, len(page["content"])))
+                # Short content is a warning, not an error
+        
+        # Update valid/problematic counts
+        if page_valid:
+            valid_pages += 1
+        else:
+            problematic_pages += 1
+    
+    # Update summary counts
+    validation_results["valid_pages"] = valid_pages
+    validation_results["problematic_pages"] = problematic_pages
+    
+    return validation_results
 
 def run_crawler() -> None:
     """
@@ -161,14 +243,8 @@ def run_crawler() -> None:
     # Log output information
     log_output_info(logger, output_json_path, formatted_output["metadata"])
     
-    # Basic validation of output data
-    validation_results = {
-        "total_pages": len(pages_data),
-        "pages_with_title": sum(1 for page in pages_data if page.get("title")),
-        "pages_with_content": sum(1 for page in pages_data if page.get("content")),
-        "empty_titles": [page["url"] for page in pages_data if not page.get("title")],
-        "empty_content": [page["url"] for page in pages_data if not page.get("content")]
-    }
+    # Comprehensive validation of output data
+    validation_results = validate_crawled_data(pages_data)
     
     # Log validation results
     log_validation_results(logger, validation_results)

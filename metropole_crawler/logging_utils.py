@@ -191,18 +191,48 @@ def log_validation_results(
         validation_results (dict): Validation results dictionary
     """
     logger.info("\nOutput Validation Results:")
+    
+    # Log summary statistics
+    logger.info(f"  Total pages: {validation_results['total_pages']}")
+    logger.info(f"  Valid pages: {validation_results['valid_pages']}/{validation_results['total_pages']} ({(validation_results['valid_pages']/validation_results['total_pages']*100) if validation_results['total_pages'] > 0 else 0:.1f}%)")
+    logger.info(f"  Problematic pages: {validation_results['problematic_pages']}/{validation_results['total_pages']} ({(validation_results['problematic_pages']/validation_results['total_pages']*100) if validation_results['total_pages'] > 0 else 0:.1f}%)")
+    
+    # Log field presence statistics
+    if 'pages_with_url' in validation_results:
+        logger.info(f"  Pages with URL: {validation_results['pages_with_url']}/{validation_results['total_pages']}")
     logger.info(f"  Pages with title: {validation_results['pages_with_title']}/{validation_results['total_pages']}")
     logger.info(f"  Pages with content: {validation_results['pages_with_content']}/{validation_results['total_pages']}")
     
+    # Log missing URLs
+    if 'missing_url' in validation_results and validation_results["missing_url"]:
+        logger.warning(f"  Pages with missing URLs: {len(validation_results['missing_url'])}")
+        for url in validation_results["missing_url"]:
+            logger.warning(f"    - {url}")
+    
+    # Log malformed URLs
+    if 'malformed_urls' in validation_results and validation_results["malformed_urls"]:
+        logger.warning(f"  Pages with malformed URLs: {len(validation_results['malformed_urls'])}")
+        for url in validation_results["malformed_urls"]:
+            logger.warning(f"    - {url}")
+    
+    # Log empty titles
     if validation_results["empty_titles"]:
         logger.warning(f"  Pages with empty titles: {len(validation_results['empty_titles'])}")
         for url in validation_results["empty_titles"]:
             logger.warning(f"    - {url}")
     
+    # Log empty content
     if validation_results["empty_content"]:
         logger.warning(f"  Pages with empty content: {len(validation_results['empty_content'])}")
         for url in validation_results["empty_content"]:
             logger.warning(f"    - {url}")
+    
+    # Log short content (warning, not error)
+    if 'short_content' in validation_results and validation_results["short_content"]:
+        logger.warning(f"  Pages with suspiciously short content: {len(validation_results['short_content'])}")
+        for url_info in validation_results["short_content"]:
+            url, length = url_info
+            logger.warning(f"    - {url} ({length} characters)")
 
 def log_completion(
     logger: logging.Logger, 
