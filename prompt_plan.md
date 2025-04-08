@@ -36,14 +36,18 @@ Implement Google Drive API integration using a service account. Create a functio
 
 ---
 
-### **Step 1.3: Download and Extract PDF Text**
+### **Step 1.3: Download and Extract Content**
 **Tasks:**
 - Download a PDF file by ID.
 - Extract text from the PDF using PyPDF2 or pdfminer.
+- Scrape text content from the Metropole website.
 
 **Prompt:**
 ```
-Write a function that downloads a PDF file from Google Drive using its file ID and extracts its text content using PyPDF2. Return the extracted text.
+Write functions that:
+1. Download a PDF file from Google Drive using its file ID and extract its text content using PyPDF2.
+2. Scrape text content from the Metropole website (https://sites.google.com/view/metropoleballard).
+Return the extracted text from both sources.
 ```
 
 ---

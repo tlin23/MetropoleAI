@@ -8,10 +8,10 @@ Metropole.AI is a web-based AI chatbot designed to preserve and surface collecti
 ## 🧠 Core Functionality
 
 ### User Capabilities
-- Ask natural language questions about the building (e.g., “What do I do if my toilet leaks?”).
+- Ask natural language questions about the building (e.g., "What do I do if my toilet leaks?").
 - Upload a **photo or text file** during the session to provide context.
 - Interact with the bot in a conversational style (with memory *within* the session).
-- Click a **“Start Over”** button to reset the chat.
+- Click a **"Start Over"** button to reset the chat.
 - See a welcome message when landing on the page.
 
 ---
@@ -24,7 +24,7 @@ Metropole.AI is a web-based AI chatbot designed to preserve and surface collecti
 - If the agent **has building-specific information**, it provides a direct answer.
 - If the info comes from general knowledge, the agent must say so clearly.
 - DIY instructions are okay *only if safe* and must include a **disclaimer**:
-  > “This is based on past residents’ experience and should not be considered professional advice. When in doubt, contact the board or a licensed professional.”
+  > "This is based on past residents' experience and should not be considered professional advice. When in doubt, contact the board or a licensed professional."
 
 ### Input Handling
 - Accepts user text input via a fixed chat UI.
@@ -36,11 +36,12 @@ Metropole.AI is a web-based AI chatbot designed to preserve and surface collecti
 ## 📄 Data Sources & Processing
 
 ### Documents
-- All source content lives in **Google Drive**, managed by the admin (you).
-- For MVP: **PDFs only**.
+- Source content comes from:
+  - **Google Drive** PDFs, managed by the admin (you)
+  - **Metropole website** (https://sites.google.com/view/metropoleballard)
 - Extraction: **Basic text extraction only** (no layout parsing).
 - Automatically ingest and update knowledge when new files are added or existing ones are modified.
-- Documents may contain sensitive info — **do not expose names/contact details** unless content is generically labeled (“contact the board”).
+- Documents may contain sensitive info — **do not expose names/contact details** unless content is generically labeled ("contact the board").
 
 ### Knowledge Categorization
 Content may include:
@@ -89,12 +90,13 @@ Content may include:
 
 ## 🚫 Error Handling
 
-### PDF ingestion
-- If a PDF can’t be read, log the filename and skip it.
+### Content ingestion
+- If a PDF can't be read, log the filename and skip it.
+- If website content can't be scraped, log the error and continue with available content.
 
 ### Chatbot responses
-- If the agent doesn’t have a good answer:
-  > “I don’t have building-specific information on that yet. You may want to contact the board or check back later.”
+- If the agent doesn't have a good answer:
+  > "I don't have building-specific information on that yet. You may want to contact the board or check back later."
 
 ---
 
@@ -104,6 +106,7 @@ Content may include:
   - Anonymized chat transcripts (timestamp, question, response)
   - File upload errors
   - Drive sync updates
+  - Website scraping status
 
 - No usage dashboard or admin panel in MVP.
 
@@ -118,11 +121,13 @@ Content may include:
 - ✅ Start Over button resets chat
 - ✅ Session is stateless across refreshes
 - ✅ Ingested content updates when PDFs are changed in Drive
+- ✅ Website content is properly scraped and indexed
 
 ### Edge Cases
 - ❌ PDF with unusual formatting (should be skipped gracefully)
 - ❌ Large file upload (should return error)
 - ❌ Question with no relevant data (should fallback to general with disclaimer)
+- ❌ Website unavailable (should continue with PDF content only)
 
 ---
 
@@ -130,7 +135,7 @@ Content may include:
 
 | Week | Focus |
 |------|-------|
-| 1 | Set up Google Drive integration + PDF ingestion + basic LLM-powered Q&A backend |
+| 1 | Set up Google Drive integration + PDF ingestion + website scraping + basic LLM-powered Q&A backend |
 | 2 | Build frontend chat UI (with file upload + Start Over + welcome message) |
 | 3 | Hook up backend to frontend, test chat flow, add logging |
 | 4 | Final polish, error handling, testing, deployment on free host |
