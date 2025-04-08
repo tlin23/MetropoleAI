@@ -14,11 +14,24 @@ const styles = {
     backgroundColor: '#2563eb',
     color: 'white',
     padding: '16px',
-    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center'
   },
   headerTitle: {
     fontSize: '1.25rem',
     fontWeight: 'bold'
+  },
+  resetButton: {
+    backgroundColor: 'white',
+    color: '#2563eb',
+    border: 'none',
+    borderRadius: '6px',
+    padding: '6px 12px',
+    cursor: 'pointer',
+    fontWeight: 'bold',
+    fontSize: '0.875rem'
   },
   main: {
     flex: 1,
@@ -110,6 +123,18 @@ function App() {
   const [inputFocused, setInputFocused] = useState(false)
   const messagesEndRef = useRef(null)
 
+  // Welcome message
+  const welcomeMessage = {
+    id: 'welcome',
+    text: 'Welcome to Metropole.AI! I can help answer questions about the building, maintenance, rules, and more. How can I assist you today?',
+    sender: 'bot'
+  }
+
+  // Display welcome message on initial load
+  useEffect(() => {
+    setMessages([welcomeMessage])
+  }, [])
+
   // Scroll to bottom of messages when messages change
   useEffect(() => {
     scrollToBottom()
@@ -117,6 +142,12 @@ function App() {
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }
+
+  // Reset chat function
+  const handleReset = () => {
+    setMessages([welcomeMessage])
+    setInputValue('')
   }
 
   const handleSubmit = async (e) => {
@@ -149,9 +180,7 @@ function App() {
           sender: 'bot'
         }
       ])
-    } catch (error) {
-      console.error('Error sending message:', error)
-      
+    } catch (error) {   
       // Add error message to chat
       setMessages(prevMessages => [
         ...prevMessages,
@@ -171,6 +200,12 @@ function App() {
       {/* App Header */}
       <header style={styles.header}>
         <h1 style={styles.headerTitle}>Metropole.AI</h1>
+        <button 
+          onClick={handleReset} 
+          style={styles.resetButton}
+        >
+          Start Over
+        </button>
       </header>
 
       {/* Chat Container */}
