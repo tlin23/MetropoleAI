@@ -41,6 +41,9 @@ def train_model(index_dir: str = "model/index") -> None:
         return
     
     # Save all extracted text chunks for debugging
+    os.makedirs(index_dir, exist_ok=True)
+
+    # Save all extracted text chunks for debugging
     debug_path = os.path.join(index_dir, "chunks.txt")
     with open(debug_path, "w", encoding="utf-8") as f:
         for i, chunk in enumerate(all_texts):
