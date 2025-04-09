@@ -6,15 +6,25 @@ import os
 import logging
 from typing import List, Optional
 
-from llama_index.core import VectorStoreIndex, Document
+from llama_index.core import VectorStoreIndex, Document, Settings
 from llama_index.core.storage import StorageContext
-from llama_index.vector_stores.chroma import ChromaVectorStore
+from llama_index.core.response_synthesizers import get_response_synthesizer
+from llama_index.vector_stores.chroma.base import ChromaVectorStore
 from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 import chromadb
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+# Initialize LlamaIndex settings - disable LLM usage
+def init_settings():
+    """Initialize LlamaIndex settings to use HuggingFace embeddings and no LLM."""
+    # Explicitly disable LLM usage
+    Settings.llm = None
+    # Use HuggingFace embeddings by default
+    Settings.embed_model = HuggingFaceEmbedding(model_name=DEFAULT_MODEL)
+    logger.info("LlamaIndex settings initialized with HuggingFace embeddings and no LLM")
 
 # Default model for sentence embeddings
 DEFAULT_MODEL = "all-MiniLM-L6-v2"
@@ -54,56 +64,44 @@ class HuggingFaceIndex:
             store_nodes_override=True
         )
     
-    def as_query_engine(self):
-        """
-        Return a query engine for the index.
-        """
-        if self.index is None:
-            logger.warning("No index available for querying")
-            return self
-        
-        return self
-    
     def query(self, query_text: str, top_k: int = 3) -> str:
         """
-        Query the index with the given text.
+        Query the index with the given text and return formatted results.
         
         Args:
-            query_text: The query text
-            top_k: Number of top similar documents to retrieve
+            query_text: The text to query
+            top_k: Number of top results to return
             
         Returns:
-            str: Response from the query
+            A formatted string with the top results
         """
         if self.index is None:
             return "No documents indexed yet."
         
-        from llama_index.core.response_synthesizers import get_response_synthesizer
-        
-        # Create a response synthesizer that just returns the text
+        # Create a response synthesizer that doesn't generate text
         response_synthesizer = get_response_synthesizer(
-            response_mode="no_text",  # Just return the nodes without generating text
+            response_mode="no_text"
         )
         
-        # Create a query engine with similarity top k and the response synthesizer
+        # Create a query engine using the global Settings.llm (which is None)
         query_engine = self.index.as_query_engine(
             similarity_top_k=top_k,
             response_synthesizer=response_synthesizer
         )
-        
-        # Get response
+
+        # Query the engine
         response = query_engine.query(query_text)
-        
-        # Extract source nodes
         source_nodes = response.source_nodes
-        
+
         if not source_nodes:
             return "No relevant information found."
-        
-        # Format the response with the source texts
+
+        # Format the response
         relevant_texts = [node.node.text for node in source_nodes]
-        formatted_response = "\n\n".join([f"ANSWER {i+1}:\n{text}" for i, text in enumerate(relevant_texts)])
-        
+        formatted_response = "\n\n".join(
+            [f"ANSWER {i+1}:\n{text}" for i, text in enumerate(relevant_texts)]
+        )
+
         return formatted_response
 
 # Build an index from a list of raw text strings
