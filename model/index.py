@@ -84,7 +84,7 @@ class HuggingFaceIndex:
         relevant_texts = [self.texts[idx] for idx in indices[0]]
         
         # Combine the relevant texts into a response
-        response = " $$$$$ ".join([f"ANSWER {i+1}:\n{text}" for i, text in enumerate(relevant_texts)])
+        response = "\n\n".join([f"ANSWER {i+1}:\n{text}" for i, text in enumerate(relevant_texts)])
         
         return response
 

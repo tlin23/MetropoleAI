@@ -115,7 +115,8 @@ function App() {
                 <div 
                   style={{
                     ...styles.messageBubble,
-                    ...(message.sender === 'user' ? styles.userBubble : styles.botBubble)
+                    ...(message.sender === 'user' ? styles.userBubble : styles.botBubble),
+                    ...(message.sender === 'bot' ? { whiteSpace: 'pre-wrap' } : {})
                   }}
                 >
                   {message.text}
