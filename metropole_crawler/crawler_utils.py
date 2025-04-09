@@ -104,9 +104,9 @@ def extract_page_title(soup):
     Returns:
         str: Page title or empty string if not found
     """
-    # Try to get the title from the <title> tag
-    if soup.title and soup.title.string:
-        return soup.title.string.strip()
+    # # Try to get the title from the <title> tag
+    # if soup.title and soup.title.string:
+    #     return soup.title.string.strip()
     
     # Fall back to the first <h1> tag
     if soup.h1 and soup.h1.get_text():
@@ -140,7 +140,11 @@ def clean_text(text):
         "Sign In",
         "Sign Out",
         "Log In",
-        "Log Out"
+        "Log Out",
+        "Search this site",
+        "Embedded Files",
+        "Skip to main content",
+        "Skip to navigation"
     ]
     
     # Replace each boilerplate phrase with an empty string
@@ -176,9 +180,9 @@ def extract_content(html_content):
     
     # Convert HTML to plain text using html2text
     h2t = html2text.HTML2Text()
-    h2t.ignore_links = False  # Keep links in the text, but format them as Markdown
+    h2t.ignore_links = True  # Keep links in the text, but format them as Markdown
     h2t.ignore_images = True  # Ignore images
-    h2t.ignore_tables = False # Keep tables
+    h2t.ignore_tables = True # Keep tables
     h2t.body_width = 0        # Don't wrap text
     
     content = h2t.handle(str(soup))
