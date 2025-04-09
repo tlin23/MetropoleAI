@@ -3,12 +3,7 @@
 from fastapi import FastAPI
 from model.index import load_index
 from utils.logging_utils import init_db, log_interaction
-from utils.app_utils import fallback_response, AskRequest
-from config import OPENAI_API_KEY
-
-import openai
-
-openai.api_key = OPENAI_API_KEY
+from utils.app_utils import AskRequest
 
 app = FastAPI()
 
@@ -34,9 +29,7 @@ async def ask(request: AskRequest):
     answer = str(response).strip()
 
     if not answer:
-        answer = fallback_response(request.question)
-        log_interaction(request.question, answer)
-        return {"answer": answer}
-
+        answer = "No information found for this question."
+    
     log_interaction(request.question, answer)
     return {"answer": answer}

@@ -5,16 +5,16 @@ This is a detailed step-by-step implementation plan for Metropole.AI, broken dow
 
 ---
 
-## 🗺️ Phase 1: Foundation – Backend & Document Ingestion
+## 🗺️ Phase 1: Foundation – Backend & Website Content Ingestion
 
-### Goal: Set up backend system to ingest PDFs from Google Drive and expose a basic Q&A API.
+### Goal: Set up backend system to ingest content from the Metropole website and expose a basic Q&A API.
 
 ---
 
 ### **Step 1.1: Set Up Backend Project**
 **Tasks:**
 - Initialize a Python project.
-- Install core dependencies (FastAPI, Uvicorn, LlamaIndex, PyPDF2).
+- Install core dependencies (FastAPI, Uvicorn, LlamaIndex, BeautifulSoup4, Requests).
 - Create basic FastAPI app scaffold with health check route.
 
 **Prompt:**
@@ -24,47 +24,31 @@ Create a FastAPI backend with a health check endpoint at `/ping` that returns `{
 
 ---
 
-### **Step 1.2: Connect to Google Drive**
+### **Step 1.2: Website Content Extraction**
 **Tasks:**
-- Authenticate with Google Drive API using a service account.
-- List files in a specified folder.
+- Implement a webcrawler to scrape text content from the Metropole website.
+- Process and clean the extracted content.
 
 **Prompt:**
 ```
-Implement Google Drive API integration using a service account. Create a function to list all PDF files in a specific folder, returning their names and IDs.
+Implement a webcrawler to scrape text content from the Metropole website (https://sites.google.com/view/metropoleballard). Create functions to process and clean the extracted content, ensuring it's ready for indexing.
 ```
 
 ---
 
-### **Step 1.3: Download and Extract Content**
+### **Step 1.3: Index Documents with LlamaIndex**
 **Tasks:**
-- Download a PDF file by ID.
-- Extract text from the PDF using PyPDF2 or pdfminer.
-- Scrape text content from the Metropole website.
-
-**Prompt:**
-```
-Write functions that:
-1. Download a PDF file from Google Drive using its file ID and extract its text content using PyPDF2.
-2. Scrape text content from the Metropole website (https://sites.google.com/view/metropoleballard).
-Return the extracted text from both sources.
-```
-
----
-
-### **Step 1.4: Index Documents with LlamaIndex**
-**Tasks:**
-- Create a LlamaIndex from the extracted PDF content.
+- Create a LlamaIndex from the extracted website content.
 - Save/load the index to disk.
 
 **Prompt:**
 ```
-Using LlamaIndex, create a simple function that builds an index from a list of document texts. Allow saving the index to disk and loading it later.
+Using LlamaIndex, create a simple function that builds an index from the extracted website content. Allow saving the index to disk and loading it later.
 ```
 
 ---
 
-### **Step 1.5: Add Query Endpoint**
+### **Step 1.4: Add Query Endpoint**
 **Tasks:**
 - Add `/ask` POST endpoint to FastAPI.
 - Pass user queries to LlamaIndex and return answers.
@@ -76,17 +60,6 @@ Create a `/ask` POST endpoint in FastAPI that accepts a JSON payload with a `que
 
 ---
 
-### **Step 1.6: Add General Knowledge Fallback**
-**Tasks:**
-- Use OpenAI GPT API when LlamaIndex returns low confidence or no answer.
-- Clearly indicate fallback in the response.
-
-**Prompt:**
-```
-Enhance the `/ask` endpoint to include a fallback using OpenAI GPT-3.5 if LlamaIndex returns no result. Prefix fallback responses with: "This is based on general knowledge and not specific to the building."
-```
-
----
 
 ## 🖼️ Phase 2: UI – Web Chat Interface
 
@@ -132,17 +105,6 @@ Update the React chat UI to display a welcome message when the app loads. Add a 
 
 ---
 
-### **Step 2.4: Add File Upload (Images/Text Only)**
-**Tasks:**
-- Enable drag-and-drop/file select upload.
-- Send uploaded file to backend for temporary parsing (MVP scope).
-
-**Prompt:**
-```
-Enhance the React chat UI to allow uploading `.jpg`, `.png`, or `.txt` files. Send the file to the backend along with the chat message.
-```
-
----
 
 ## 🔗 Phase 3: Integration, Logging, Testing
 
@@ -173,14 +135,14 @@ Add a disclaimer to any chatbot response that includes keywords like "fix", "rep
 
 ---
 
-### **Step 3.3: Implement PDF Watcher for Auto-Sync**
+### **Step 3.3: Implement Website Content Refresh**
 **Tasks:**
-- Poll Google Drive folder every N minutes.
-- Re-ingest changed files.
+- Schedule periodic website crawling to check for new content.
+- Re-index when new content is detected.
 
 **Prompt:**
 ```
-Implement a scheduled task that checks the Google Drive folder every 10 minutes for new or updated PDFs. Rebuild the LlamaIndex if changes are detected.
+Implement a scheduled task that crawls the Metropole website every 24 hours to check for new or updated content. Rebuild the LlamaIndex if changes are detected.
 ```
 
 ---
@@ -188,14 +150,14 @@ Implement a scheduled task that checks the Google Drive folder every 10 minutes 
 ### **Step 3.4: Final Testing + Edge Cases**
 **Tasks:**
 - Write test cases for:
-  - PDF ingestion failure
-  - File too large
+  - Website crawling failure
+  - Content processing issues
   - No match in knowledge base
-  - Fallback disclaimer
+  - Error handling
 
 **Prompt:**
 ```
-Write unit and integration tests to verify error handling for large uploads, unrecognized PDFs, and fallback behavior when no answer is found.
+Write unit and integration tests to verify error handling for website crawling failures, content processing issues, and behavior when no answer is found in the knowledge base.
 ```
 
 ---
