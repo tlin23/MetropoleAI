@@ -144,7 +144,13 @@ def clean_text(text):
         "Search this site",
         "Embedded Files",
         "Skip to main content",
-        "Skip to navigation"
+        "Skip to navigation",
+        "Google Sites",  
+        "Report abuse",
+        "Page details",  
+        "Page updated",  
+        "Google Sites",  
+        "Report abuse"
     ]
     
     # Replace each boilerplate phrase with an empty string
