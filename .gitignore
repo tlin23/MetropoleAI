@@ -29,6 +29,7 @@ venv/
 ENV/
 env.bak/
 venv.bak/
+metropole_crawler/venv/
 
 # IDE files
 .idea/
@@ -37,8 +38,13 @@ venv.bak/
 *.swo
 .DS_Store
 
+# Node.js
+node_modules/
+
 # Project specific
 index/
+model/index/
+model/finetuned-llm/
 *.log
 service_account.json
 *.pdf
