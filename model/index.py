@@ -30,6 +30,9 @@ def init_settings():
 DEFAULT_MODEL = "all-MiniLM-L6-v2"
 DEFAULT_INDEX_DIR = "model/index"
 
+# Load similarity threshold from environment variable, default to 0.7
+SIMILARITY_THRESHOLD = float(os.getenv("SIMILARITY_THRESHOLD", "0.7"))
+
 class HuggingFaceIndex:
     """
     A class that wraps LlamaIndex functionality with HuggingFace embeddings.
@@ -64,19 +67,23 @@ class HuggingFaceIndex:
             store_nodes_override=True
         )
     
-    def query(self, query_text: str, top_k: int = 3) -> str:
+    def query(self, query_text: str, top_k: int = 1) -> dict:
         """
-        Query the index with the given text and return formatted results.
+        Query the index with the given text and return the best match with its similarity score.
         
         Args:
             query_text: The text to query
-            top_k: Number of top results to return
+            top_k: Number of top results to return (default: 1 for best match)
             
         Returns:
-            A formatted string with the top results
+            A dictionary with the best matching text and its similarity score:
+            {
+                "text": "best matching text",
+                "score": 0.84  # similarity score
+            }
         """
         if self.index is None:
-            return "No documents indexed yet."
+            return {"text": "No documents indexed yet.", "score": 0.0}
         
         # Create a response synthesizer that doesn't generate text
         response_synthesizer = get_response_synthesizer(
@@ -94,15 +101,17 @@ class HuggingFaceIndex:
         source_nodes = response.source_nodes
 
         if not source_nodes:
-            return "No relevant information found."
+            return {"text": "No relevant information found.", "score": 0.0}
 
-        # Format the response
-        relevant_texts = [node.node.text for node in source_nodes]
-        formatted_response = "\n\n".join(
-            [f"ANSWER {i+1}:\n{text}" for i, text in enumerate(relevant_texts)]
-        )
+        # Get the best match (first node) and its score
+        best_node = source_nodes[0]
+        best_text = best_node.node.text
+        similarity_score = best_node.score if hasattr(best_node, 'score') else 0.0
 
-        return formatted_response
+        return {
+            "text": best_text,
+            "score": similarity_score
+        }
 
 # Build an index from a list of raw text strings
 def build_index_from_texts(texts: List[str], index_dir: str = DEFAULT_INDEX_DIR) -> HuggingFaceIndex:

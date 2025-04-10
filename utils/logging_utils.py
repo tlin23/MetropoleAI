@@ -25,27 +25,49 @@ def init_db():
         db_path = get_db_path()
         conn = sqlite3.connect(db_path)
         cursor = conn.cursor()
-        cursor.execute('''
-        CREATE TABLE IF NOT EXISTS chat_logs (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            timestamp TEXT,
-            question TEXT,
-            response TEXT
-        )
-        ''')
+        
+        # Check if the table exists
+        cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='chat_logs'")
+        table_exists = cursor.fetchone() is not None
+        
+        if not table_exists:
+            # Create new table with all columns
+            cursor.execute('''
+            CREATE TABLE chat_logs (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                timestamp TEXT,
+                question TEXT,
+                response TEXT,
+                score REAL,
+                response_type TEXT
+            )
+            ''')
+        else:
+            # Check if we need to add the new columns
+            cursor.execute("PRAGMA table_info(chat_logs)")
+            columns = [column[1] for column in cursor.fetchall()]
+            
+            if 'score' not in columns:
+                cursor.execute('ALTER TABLE chat_logs ADD COLUMN score REAL')
+            
+            if 'response_type' not in columns:
+                cursor.execute('ALTER TABLE chat_logs ADD COLUMN response_type TEXT')
+        
         conn.commit()
         conn.close()
         logger.info("Chat logs database initialized successfully")
     except Exception as e:
         logger.error(f"Error initializing chat logs database: {e}")
 
-def log_interaction(question: str, response: str):
+def log_interaction(question: str, response: str, score: float = None, response_type: str = None):
     """
     Log a chat interaction to the SQLite database.
     
     Args:
         question: The user's question
         response: The system's response
+        score: The similarity score of the retrieved passage (optional)
+        response_type: The type of response (e.g., "rewrite", "fallback", "error") (optional)
     """
     try:
         timestamp = datetime.now().isoformat()
@@ -53,11 +75,11 @@ def log_interaction(question: str, response: str):
         conn = sqlite3.connect(db_path)
         cursor = conn.cursor()
         cursor.execute(
-            'INSERT INTO chat_logs (timestamp, question, response) VALUES (?, ?, ?)',
-            (timestamp, question, response)
+            'INSERT INTO chat_logs (timestamp, question, response, score, response_type) VALUES (?, ?, ?, ?, ?)',
+            (timestamp, question, response, score, response_type)
         )
         conn.commit()
         conn.close()
-        logger.info(f"Logged interaction at {timestamp}")
+        logger.info(f"Logged interaction at {timestamp} with response_type={response_type}, score={score}")
     except Exception as e:
         logger.error(f"Error logging interaction: {e}")
