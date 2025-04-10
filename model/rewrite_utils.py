@@ -36,11 +36,11 @@ async def rewrite_answer(question: str, passages: List[Dict[str, Union[str, floa
     user_prompt = get_user_prompt_multi(passages, question)
     
     # Prepare the payload
+    # Format the input as a string with system prompt and user prompt
+    formatted_input = f"{system_prompt}\n\n{user_prompt}"
+    
     payload = {
-        "inputs": {
-            "system": system_prompt,
-            "text": user_prompt
-        },
+        "inputs": formatted_input,
         "parameters": {"max_new_tokens": 300},
         "options": {"use_cache": True, "wait_for_model": True}
     }
@@ -52,16 +52,41 @@ async def rewrite_answer(question: str, passages: List[Dict[str, Union[str, floa
         try:
             async with httpx.AsyncClient(timeout=15) as client:
                 response = await client.post(HF_MODEL_URL, headers=headers, json=payload)
-                await response.raise_for_status()
-                data = await response.json()
+                response.raise_for_status()
+                data = response.json()
                 
-                # Extract the generated text
-                generated_text = data.get("generated_text", "").strip()
+                # Extract the generated text - handle both list and dictionary responses
+                if isinstance(data, list) and len(data) > 0:
+                    # If data is a list, take the first item
+                    first_item = data[0]
+                    if isinstance(first_item, dict):
+                        generated_text = first_item.get("generated_text", "").strip()
+                    else:
+                        # If the first item is not a dict, convert to string
+                        generated_text = str(first_item).strip()
+                elif isinstance(data, dict):
+                    # If data is a dictionary, extract generated_text
+                    generated_text = data.get("generated_text", "").strip()
+                else:
+                    # Fallback for unexpected response format
+                    generated_text = str(data).strip()
+                
                 if generated_text:
+                    # Extract just the answer part from the response
+                    # Look for "Answer:" in the text and extract everything after it
+                    answer_parts = generated_text.split("Answer:")
+                    if len(answer_parts) > 1:
+                        # Take everything after "Answer:"
+                        clean_answer = answer_parts[1].strip()
+                    else:
+                        # If "Answer:" is not found, use the original text
+                        clean_answer = generated_text
+                    
                     logger.info(f"Successfully rewrote answer on attempt {attempt + 1}")
-                    return generated_text
+                    return clean_answer
                 else:
                     logger.warning(f"Empty response from Hugging Face API on attempt {attempt + 1}")
+                    logger.warning(f"Response data: {data}")
         
         except httpx.HTTPStatusError as e:
             logger.error(f"HTTP error on attempt {attempt + 1}: {e.response.status_code} - {e.response.text}")

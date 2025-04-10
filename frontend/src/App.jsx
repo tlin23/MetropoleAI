@@ -63,7 +63,7 @@ function App() {
         ...prevMessages,
         {
           id: Date.now(),
-          text: response.data.answer || "I'm sorry, I couldn't find an answer to that.",
+          text: response.data.final_response || "I'm sorry, I couldn't find an answer to that.",
           sender: 'bot'
         }
       ])

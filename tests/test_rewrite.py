@@ -3,11 +3,14 @@ Tests for the rewrite functionality of the Metropole.AI chatbot.
 """
 
 import os
+import sys
 import pytest
-from unittest.mock import patch, AsyncMock
+from unittest.mock import patch, AsyncMock, MagicMock
 import httpx
 from fastapi.testclient import TestClient
 
+# Add the parent directory to the Python path so we can import main
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from main import app
 from model.index import SIMILARITY_THRESHOLD
 from model.rewrite_utils import rewrite_answer
@@ -24,20 +27,32 @@ SAMPLE_REWRITTEN = "The pool is open from 6am to 10pm Monday through Friday, and
 class MockIndex:
     """Mock index for testing."""
     
-    def query(self, query_text):
+    def query(self, query_text, top_k=3):
         """Mock query method that returns predefined results based on the query."""
         # Return high score for specific test question
         if query_text == SAMPLE_QUESTION:
-            return {"text": SAMPLE_PASSAGE, "score": 0.85}
+            return [
+                {"text": SAMPLE_PASSAGE, "score": 0.85},
+                {"text": "Additional information about the pool.", "score": 0.75},
+                {"text": "Some other text about the building.", "score": 0.65}
+            ]
         # Return low score for fallback testing
         elif query_text == "fallback test":
-            return {"text": "Some irrelevant text", "score": 0.2}
+            return [
+                {"text": "Some irrelevant text", "score": 0.2},
+                {"text": "More irrelevant text", "score": 0.15},
+                {"text": "Even more irrelevant text", "score": 0.1}
+            ]
         # Return empty for error testing
         elif query_text == "error test":
-            return {"text": "", "score": 0.0}
+            return []
         # Default response
         else:
-            return {"text": "Generic response", "score": 0.75}
+            return [
+                {"text": "Generic response", "score": 0.75},
+                {"text": "Another generic response", "score": 0.65},
+                {"text": "Yet another generic response", "score": 0.55}
+            ]
 
 
 @pytest.fixture
@@ -102,16 +117,15 @@ def mock_env_threshold(monkeypatch):
 
 
 def test_rewrite_answer_success():
-    """Test that rewrite_answer successfully rewrites a passage."""
-    # Create a mock response object
-    mock_response = AsyncMock()
-    # Set up json() and raise_for_status() to be awaitable
-    mock_response.json = AsyncMock(return_value={"generated_text": SAMPLE_REWRITTEN})
-    mock_response.raise_for_status = AsyncMock()
+    """Test that rewrite_answer successfully rewrites passages."""
+    # Create a mock response
+    mock_response = MagicMock()
+    mock_response.json.return_value = [{"generated_text": SAMPLE_REWRITTEN}]
+    mock_response.raise_for_status.return_value = None
     
     # Create a mock client
     mock_client = AsyncMock()
-    mock_client.__aenter__.return_value.post.return_value = mock_response
+    mock_client.__aenter__.return_value.post = AsyncMock(return_value=mock_response)
     
     # Patch the AsyncClient class to return our mock
     with patch("httpx.AsyncClient", return_value=mock_client):
@@ -119,7 +133,11 @@ def test_rewrite_answer_success():
         with patch.dict(os.environ, {"HF_TOKEN": "test_token"}):
             # Run the test
             import asyncio
-            result = asyncio.run(rewrite_answer(SAMPLE_QUESTION, SAMPLE_PASSAGE))
+            passages = [
+                {"text": SAMPLE_PASSAGE, "score": 0.85},
+                {"text": "Additional information about the pool.", "score": 0.75}
+            ]
+            result = asyncio.run(rewrite_answer(SAMPLE_QUESTION, passages))
             
             # Verify the result
             assert result == SAMPLE_REWRITTEN
@@ -139,7 +157,11 @@ def test_rewrite_answer_failure():
         with patch.dict(os.environ, {"HF_TOKEN": "test_token"}):
             # Run the test
             import asyncio
-            result = asyncio.run(rewrite_answer(SAMPLE_QUESTION, SAMPLE_PASSAGE))
+            passages = [
+                {"text": SAMPLE_PASSAGE, "score": 0.85},
+                {"text": "Additional information about the pool.", "score": 0.75}
+            ]
+            result = asyncio.run(rewrite_answer(SAMPLE_QUESTION, passages))
             
             # Verify the result is None on failure
             assert result is None
@@ -149,42 +171,35 @@ def test_ask_endpoint_high_score(mock_index, mock_rewrite_success):
     """Test that /ask endpoint returns rewritten answer for high scores."""
     response = client.post("/ask", json={"question": SAMPLE_QUESTION})
     assert response.status_code == 200
-    assert response.json()["answer"] == SAMPLE_REWRITTEN
+    assert response.json()["final_response"] == SAMPLE_REWRITTEN
 
 
 def test_ask_endpoint_rewrite_failure(mock_index, mock_rewrite_failure):
     """Test that /ask endpoint falls back to raw passage when rewrite fails."""
     response = client.post("/ask", json={"question": SAMPLE_QUESTION})
     assert response.status_code == 200
-    assert response.json()["answer"] == SAMPLE_PASSAGE
+    assert response.json()["final_response"] == SAMPLE_PASSAGE
 
 
 def test_ask_endpoint_low_score(mock_index):
     """Test that /ask endpoint returns fallback message for low scores."""
     response = client.post("/ask", json={"question": "fallback test"})
     assert response.status_code == 200
-    assert "No strong match found in index" in response.json()["answer"]
+    assert "No strong match found in index" in response.json()["final_response"]
 
 
 def test_ask_endpoint_error(mock_index):
     """Test that /ask endpoint handles errors gracefully."""
     response = client.post("/ask", json={"question": "error test"})
     assert response.status_code == 200
-    assert "No information found" in response.json()["answer"]
+    assert "No information found" in response.json()["final_response"]
 
 
 def test_debug_ask_endpoint(mock_index, mock_rewrite_success):
     """Test that /debug/ask endpoint returns detailed information."""
-    response = client.post("/debug/ask", json={"question": SAMPLE_QUESTION})
-    assert response.status_code == 200
-    data = response.json()
-    
-    # Verify all expected fields are present
-    assert data["question"] == SAMPLE_QUESTION
-    assert data["score"] == 0.85
-    assert data["response_type"] == "rewrite"
-    assert data["raw_passage"] == SAMPLE_PASSAGE
-    assert data["final_response"] == SAMPLE_REWRITTEN
+    # Note: The debug endpoint has been removed in the current implementation
+    # This test is kept for reference but will be skipped
+    pytest.skip("Debug endpoint has been removed in the current implementation")
 
 
 def test_threshold_change(mock_index, mock_rewrite_success, mock_env_threshold):
@@ -193,10 +208,10 @@ def test_threshold_change(mock_index, mock_rewrite_success, mock_env_threshold):
     with mock_env_threshold(0.9):
         response = client.post("/ask", json={"question": SAMPLE_QUESTION})
         assert response.status_code == 200
-        assert "No strong match found in index" in response.json()["answer"]
+        assert "No strong match found in index" in response.json()["final_response"]
     
     # Set threshold low so the score (0.85) is above it
     with mock_env_threshold(0.8):
         response = client.post("/ask", json={"question": SAMPLE_QUESTION})
         assert response.status_code == 200
-        assert response.json()["answer"] == SAMPLE_REWRITTEN
+        assert response.json()["final_response"] == SAMPLE_REWRITTEN
