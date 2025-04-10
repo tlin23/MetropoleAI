@@ -31,7 +31,7 @@ class MockIndex:
             return {"text": SAMPLE_PASSAGE, "score": 0.85}
         # Return low score for fallback testing
         elif query_text == "fallback test":
-            return {"text": "Some irrelevant text", "score": 0.5}
+            return {"text": "Some irrelevant text", "score": 0.2}
         # Return empty for error testing
         elif query_text == "error test":
             return {"text": "", "score": 0.0}

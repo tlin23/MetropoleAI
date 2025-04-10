@@ -6,6 +6,7 @@ import os
 import logging
 import httpx
 from typing import Optional
+from model.prompts import SYSTEM_PROMPT, get_user_prompt
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -30,9 +31,9 @@ async def rewrite_answer(question: str, passage: str) -> Optional[str]:
         logger.error("HF_TOKEN environment variable not set")
         return None
     
-    # System prompt and user prompt
-    system_prompt = "You are a helpful assistant for residents at The Metropole building in Seattle. Always speak clearly, stay friendly but focused, and avoid overly general language."
-    user_prompt = f"Rewrite the following passage into a clear, helpful answer for a resident's question.\n\nPassage: {passage}\n\nQuestion: {question}"
+    # Get prompts from the prompts module
+    system_prompt = SYSTEM_PROMPT
+    user_prompt = get_user_prompt(passage, question)
     
     # Prepare the payload
     payload = {
