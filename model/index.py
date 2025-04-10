@@ -67,23 +67,24 @@ class HuggingFaceIndex:
             store_nodes_override=True
         )
     
-    def query(self, query_text: str, top_k: int = 1) -> dict:
+    def query(self, query_text: str, top_k: int = 3) -> list:
         """
-        Query the index with the given text and return the best match with its similarity score.
+        Query the index with the given text and return the top matches with their similarity scores.
         
         Args:
             query_text: The text to query
-            top_k: Number of top results to return (default: 1 for best match)
+            top_k: Number of top results to return (default: 3)
             
         Returns:
-            A dictionary with the best matching text and its similarity score:
-            {
-                "text": "best matching text",
-                "score": 0.84  # similarity score
-            }
+            A list of dictionaries, each with a matching text and its similarity score:
+            [
+                {"text": "best matching text", "score": 0.84},
+                {"text": "second best match", "score": 0.76},
+                {"text": "third best match", "score": 0.65}
+            ]
         """
         if self.index is None:
-            return {"text": "No documents indexed yet.", "score": 0.0}
+            return [{"text": "No documents indexed yet.", "score": 0.0}]
         
         # Create a response synthesizer that doesn't generate text
         response_synthesizer = get_response_synthesizer(
@@ -101,17 +102,22 @@ class HuggingFaceIndex:
         source_nodes = response.source_nodes
 
         if not source_nodes:
-            return {"text": "No relevant information found.", "score": 0.0}
+            return [{"text": "No relevant information found.", "score": 0.0}]
 
-        # Get the best match (first node) and its score
-        best_node = source_nodes[0]
-        best_text = best_node.node.text
-        similarity_score = best_node.score if hasattr(best_node, 'score') else 0.0
-
-        return {
-            "text": best_text,
-            "score": similarity_score
-        }
+        # Convert all nodes to dictionaries with text and score
+        results = []
+        for node in source_nodes:
+            text = node.node.text
+            score = node.score if hasattr(node, 'score') else 0.0
+            results.append({
+                "text": text,
+                "score": score
+            })
+        
+        # Sort by score in descending order (highest scores first)
+        results.sort(key=lambda x: x["score"], reverse=True)
+        
+        return results
 
 # Build an index from a list of raw text strings
 def build_index_from_texts(texts: List[str], index_dir: str = DEFAULT_INDEX_DIR) -> HuggingFaceIndex:

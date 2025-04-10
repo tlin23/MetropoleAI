@@ -5,6 +5,7 @@ from model.index import init_settings, load_index, SIMILARITY_THRESHOLD
 from model.rewrite_utils import rewrite_answer
 from utils.logging_utils import init_db, log_interaction
 from utils.app_utils import AskRequest
+import json
 
 app = FastAPI()
 
@@ -23,94 +24,86 @@ async def ping():
 
 @app.post("/ask")
 async def ask(request: AskRequest):
+    """
+    Enhanced endpoint that retrieves top 3 matches, filters by similarity threshold,
+    and returns detailed information about the query and response.
+    """
     if not index:
-        answer = "No documents indexed yet."
-        log_interaction(request.question, answer, score=0.0, response_type="error")
-        return {"answer": answer}
+        final_response = "No documents indexed yet."
+        log_interaction(request.question, final_response, score=0.0, response_type="error")
+        return {
+            "question": request.question,
+            "score": 0.0,
+            "response_type": "error",
+            "raw_passages": [],
+            "filtered_out": [],
+            "final_response": final_response
+        }
     
-    # Query now returns a dictionary with text and score
-    query_result = index.query(request.question)
-    raw_passage = query_result["text"]
-    score = query_result["score"]
-
-    if not raw_passage:
-        answer = "No information found for this question."
-        log_interaction(request.question, answer, score=0.0, response_type="error")
-        return {"answer": answer}
+    # Query now returns a list of dictionaries with text and score
+    raw_passages = index.query(request.question, top_k=3)
     
-    # Determine if we should rewrite the answer based on the similarity score
-    if score >= SIMILARITY_THRESHOLD:
-        # Try to rewrite the answer
-        rewritten_answer = await rewrite_answer(request.question, raw_passage)
-        
-        if rewritten_answer:
-            # Successfully rewrote the answer
-            log_interaction(request.question, rewritten_answer, score=score, response_type="rewrite")
-            return {"answer": rewritten_answer}
+    if not raw_passages:
+        final_response = "No information found for this question."
+        log_interaction(request.question, final_response, score=0.0, response_type="error")
+        return {
+            "question": request.question,
+            "score": 0.0,
+            "response_type": "error",
+            "raw_passages": [],
+            "filtered_out": [],
+            "final_response": final_response
+        }
+    
+    # Filter passages based on similarity threshold
+    retained_passages = []
+    filtered_out = []
+    
+    for passage in raw_passages:
+        if passage["score"] >= SIMILARITY_THRESHOLD:
+            retained_passages.append(passage)
         else:
-            # Failed to rewrite, use the raw passage as a fallback
-            log_interaction(request.question, raw_passage, score=score, response_type="direct")
-            return {"answer": raw_passage}
-    else:
-        # Score is below threshold, return a fallback message
-        fallback_message = f"No strong match found in index. Query: '{request.question}'. Consider checking content coverage or reindexing."
-        log_interaction(request.question, fallback_message, score=score, response_type="fallback")
-        return {"answer": fallback_message}
-
-@app.post("/debug/ask")
-async def debug_ask(request: AskRequest):
-    """
-    Debug endpoint that returns detailed information about the query and response.
-    This endpoint should be secured before production deployment.
-    """
-    if not index:
-        return {
-            "question": request.question,
-            "score": 0.0,
-            "response_type": "error",
-            "raw_passage": None,
-            "final_response": "No documents indexed yet."
-        }
+            filtered_out.append(passage)
     
-    # Query returns a dictionary with text and score
-    query_result = index.query(request.question)
-    raw_passage = query_result["text"]
-    score = query_result["score"]
+    # Sort retained passages by score (highest first)
+    retained_passages.sort(key=lambda x: x["score"], reverse=True)
     
-    if not raw_passage:
-        return {
-            "question": request.question,
-            "score": 0.0,
-            "response_type": "error",
-            "raw_passage": None,
-            "final_response": "No information found for this question."
-        }
+    # Get the highest score (if any passages were retained)
+    top_score = retained_passages[0]["score"] if retained_passages else 0.0
     
-    # Determine response type and final response based on score
-    if score >= SIMILARITY_THRESHOLD:
-        # Try to rewrite the answer
-        rewritten_answer = await rewrite_answer(request.question, raw_passage)
+    # Determine response type and final response
+    if retained_passages:
+        # Try to rewrite the answer using all retained passages
+        rewritten_answer = await rewrite_answer(request.question, retained_passages)
         
         if rewritten_answer:
             # Successfully rewrote the answer
             final_response = rewritten_answer
             response_type = "rewrite"
         else:
-            # Failed to rewrite, use the raw passage as a fallback
-            final_response = raw_passage
+            # Failed to rewrite, use the top passage as a fallback
+            final_response = retained_passages[0]["text"]
             response_type = "direct"
     else:
-        # Score is below threshold, return a fallback message
+        # No passages above threshold, return a fallback message
         final_response = f"No strong match found in index. Query: '{request.question}'. Consider checking content coverage or reindexing."
         response_type = "fallback"
     
-    # Log the interaction
-    log_interaction(request.question, final_response, score=score, response_type=response_type)
+    # Log the interaction with raw_passages and filtered_out as JSON strings
+    log_interaction(
+        request.question, 
+        final_response, 
+        score=top_score, 
+        response_type=response_type,
+        raw_passages=json.dumps(retained_passages),
+        filtered_out=json.dumps(filtered_out)
+    )
     
     return {
         "question": request.question,
-        "score": score,
+        "score": top_score,
         "response_type": response_type,
-        "raw_passage": raw_passage,
+        "raw_passages": retained_passages,
+        "filtered_out": filtered_out,
         "final_response": final_response
     }

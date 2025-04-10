@@ -5,8 +5,8 @@ Utilities for rewriting retrieved passages into conversational, helpful answers.
 import os
 import logging
 import httpx
-from typing import Optional
-from model.prompts import SYSTEM_PROMPT, get_user_prompt
+from typing import Optional, List, Dict, Union
+from model.prompts import SYSTEM_PROMPT, get_user_prompt, get_user_prompt_multi
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -16,13 +16,13 @@ logger = logging.getLogger(__name__)
 HF_API_TOKEN = os.getenv("HF_TOKEN")
 HF_MODEL_URL = "https://api-inference.huggingface.co/models/HuggingFaceH4/zephyr-7b-beta"
 
-async def rewrite_answer(question: str, passage: str) -> Optional[str]:
+async def rewrite_answer(question: str, passages: List[Dict[str, Union[str, float]]]) -> Optional[str]:
     """
-    Rewrite a retrieved passage into a conversational, helpful answer using Hugging Face API.
+    Rewrite retrieved passages into a conversational, helpful answer using Hugging Face API.
     
     Args:
         question: The user's question
-        passage: The retrieved passage to rewrite
+        passages: List of dictionaries with 'text' and 'score' keys
         
     Returns:
         The rewritten answer, or None if the API call fails
@@ -33,7 +33,7 @@ async def rewrite_answer(question: str, passage: str) -> Optional[str]:
     
     # Get prompts from the prompts module
     system_prompt = SYSTEM_PROMPT
-    user_prompt = get_user_prompt(passage, question)
+    user_prompt = get_user_prompt_multi(passages, question)
     
     # Prepare the payload
     payload = {

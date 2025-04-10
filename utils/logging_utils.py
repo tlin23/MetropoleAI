@@ -2,6 +2,7 @@ import sqlite3
 from datetime import datetime
 import logging
 import os
+from typing import Optional
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -39,7 +40,9 @@ def init_db():
                 question TEXT,
                 response TEXT,
                 score REAL,
-                response_type TEXT
+                response_type TEXT,
+                raw_passages TEXT,
+                filtered_out TEXT
             )
             ''')
         else:
@@ -52,6 +55,12 @@ def init_db():
             
             if 'response_type' not in columns:
                 cursor.execute('ALTER TABLE chat_logs ADD COLUMN response_type TEXT')
+            
+            if 'raw_passages' not in columns:
+                cursor.execute('ALTER TABLE chat_logs ADD COLUMN raw_passages TEXT')
+            
+            if 'filtered_out' not in columns:
+                cursor.execute('ALTER TABLE chat_logs ADD COLUMN filtered_out TEXT')
         
         conn.commit()
         conn.close()
@@ -59,7 +68,14 @@ def init_db():
     except Exception as e:
         logger.error(f"Error initializing chat logs database: {e}")
 
-def log_interaction(question: str, response: str, score: float = None, response_type: str = None):
+def log_interaction(
+    question: str, 
+    response: str, 
+    score: float = None, 
+    response_type: str = None,
+    raw_passages: str = None,
+    filtered_out: str = None
+):
     """
     Log a chat interaction to the SQLite database.
     
@@ -68,6 +84,8 @@ def log_interaction(question: str, response: str, score: float = None, response_
         response: The system's response
         score: The similarity score of the retrieved passage (optional)
         response_type: The type of response (e.g., "rewrite", "fallback", "error") (optional)
+        raw_passages: JSON-encoded string of retained passages (optional)
+        filtered_out: JSON-encoded string of filtered-out passages (optional)
     """
     try:
         timestamp = datetime.now().isoformat()
@@ -75,8 +93,8 @@ def log_interaction(question: str, response: str, score: float = None, response_
         conn = sqlite3.connect(db_path)
         cursor = conn.cursor()
         cursor.execute(
-            'INSERT INTO chat_logs (timestamp, question, response, score, response_type) VALUES (?, ?, ?, ?, ?)',
-            (timestamp, question, response, score, response_type)
+            'INSERT INTO chat_logs (timestamp, question, response, score, response_type, raw_passages, filtered_out) VALUES (?, ?, ?, ?, ?, ?, ?)',
+            (timestamp, question, response, score, response_type, raw_passages, filtered_out)
         )
         conn.commit()
         conn.close()
