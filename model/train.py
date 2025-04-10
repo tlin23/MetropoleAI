@@ -9,7 +9,8 @@ Usage: python -m model.train
 import os
 import logging
 from model.index import build_index_from_texts
-from model.utils import get_latest_metropole_data, extract_website_texts
+from model.utils import get_latest_metropole_data
+from model.smart_chunking import smart_chunk_metropole_pages
 
 # Configure logging
 logging.basicConfig(
@@ -33,8 +34,16 @@ def train_model(index_dir: str = "model/index") -> None:
     metropole_pages = get_latest_metropole_data()
     
     if metropole_pages:
-        website_texts = extract_website_texts(metropole_pages)
-        all_texts.extend(website_texts)
+        try:
+            website_texts = smart_chunk_metropole_pages(metropole_pages, debug_path=os.path.join(index_dir, "chunks.txt"))
+            all_texts.extend(website_texts)
+            logger.info(f"Successfully chunked {len(website_texts)} text chunks from metropole website")
+        except Exception as e:
+            logger.error(f"Error in smart chunking: {str(e)}")
+            logger.warning("Falling back to legacy text extraction...")
+            from model.utils import extract_website_texts
+            website_texts = extract_website_texts(metropole_pages)
+            all_texts.extend(website_texts)
     
     if not all_texts:
         logger.error("No text could be extracted from any source. Aborting.")
@@ -43,12 +52,13 @@ def train_model(index_dir: str = "model/index") -> None:
     # Save all extracted text chunks for debugging
     os.makedirs(index_dir, exist_ok=True)
 
-    # Save all extracted text chunks for debugging
-    debug_path = os.path.join(index_dir, "chunks.txt")
-    with open(debug_path, "w", encoding="utf-8") as f:
-        for i, chunk in enumerate(all_texts):
-            f.write(f"--- Chunk {i+1} ---\n{chunk}\n\n")
-    logger.info(f"Saved chunks to {debug_path}")
+    # If we didn't use smart chunking (which already saves debug file), save chunks for debugging
+    if not os.path.exists(os.path.join(index_dir, "chunks.txt")):
+        debug_path = os.path.join(index_dir, "chunks.txt")
+        with open(debug_path, "w", encoding="utf-8") as f:
+            for i, chunk in enumerate(all_texts):
+                f.write(f"--- Chunk {i+1} ---\n{chunk}\n\n")
+        logger.info(f"Saved chunks to {debug_path}")
     
     # Build the index from the extracted texts
     logger.info(f"Building index from {len(all_texts)} text chunks...")
