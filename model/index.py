@@ -31,7 +31,7 @@ DEFAULT_MODEL = "all-MiniLM-L6-v2"
 DEFAULT_INDEX_DIR = "model/index"
 
 # Load similarity threshold from environment variable, default to 0.7
-SIMILARITY_THRESHOLD = float(os.getenv("SIMILARITY_THRESHOLD", "0.7"))
+SIMILARITY_THRESHOLD = float(os.getenv("SIMILARITY_THRESHOLD", "0.3"))
 
 class HuggingFaceIndex:
     """
