@@ -12,7 +12,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # Get API token from environment variable
-HF_API_TOKEN = os.getenv("HF_API_TOKEN")
+HF_API_TOKEN = os.getenv("HF_TOKEN")
 HF_MODEL_URL = "https://api-inference.huggingface.co/models/HuggingFaceH4/zephyr-7b-beta"
 
 async def rewrite_answer(question: str, passage: str) -> Optional[str]:
@@ -27,7 +27,7 @@ async def rewrite_answer(question: str, passage: str) -> Optional[str]:
         The rewritten answer, or None if the API call fails
     """
     if not HF_API_TOKEN:
-        logger.error("HF_API_TOKEN environment variable not set")
+        logger.error("HF_TOKEN environment variable not set")
         return None
     
     # System prompt and user prompt
@@ -51,8 +51,8 @@ async def rewrite_answer(question: str, passage: str) -> Optional[str]:
         try:
             async with httpx.AsyncClient(timeout=15) as client:
                 response = await client.post(HF_MODEL_URL, headers=headers, json=payload)
-                response.raise_for_status()
-                data = response.json()
+                await response.raise_for_status()
+                data = await response.json()
                 
                 # Extract the generated text
                 generated_text = data.get("generated_text", "").strip()

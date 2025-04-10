@@ -16,7 +16,7 @@ The system can be configured using environment variables:
 | Variable | Description | Default |
 |----------|-------------|---------|
 | `SIMILARITY_THRESHOLD` | Minimum similarity score required to rewrite a passage | `0.7` |
-| `HF_API_TOKEN` | Hugging Face API token for accessing the rewrite model | (required) |
+| `HF_TOKEN` | Hugging Face API token for accessing the rewrite model | (required) |
 | `DB_PATH` | Path to the SQLite database for logging | `chat_logs.db` |
 
 ### Setting Environment Variables
@@ -24,7 +24,7 @@ The system can be configured using environment variables:
 ```bash
 # Example .env file
 SIMILARITY_THRESHOLD=0.75
-HF_API_TOKEN=your_huggingface_token
+HF_TOKEN=your_huggingface_token
 DB_PATH=/path/to/logs.db
 ```
 
