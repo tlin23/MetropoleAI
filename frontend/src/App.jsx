@@ -54,7 +54,8 @@ function App() {
 
     try {
       // Send request to backend
-      const response = await axios.post('/api/ask', {
+      // If using deployed backed, use this
+      const response = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/ask`, {
         question: userMessage.text
       })
 
