@@ -1,13 +1,18 @@
 # load app from terminal: uvicorn main:app --reload 
+import os
+import json
 
 from fastapi import FastAPI
 from model.index import init_settings, load_index, SIMILARITY_THRESHOLD
 from model.rewrite_utils import rewrite_answer
 from utils.logging_utils import init_db, log_interaction
 from utils.app_utils import AskRequest
-import json
+from dotenv import load_dotenv
 
 app = FastAPI()
+
+#load environment variables defined in .env
+load_dotenv()
 
 # Initialize database on startup
 init_db()
