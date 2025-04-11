@@ -1,0 +1,10 @@
+# render.yaml
+services:
+  - type: web
+    name: metropole-backend
+    runtime: python
+    buildCommand: ""
+    startCommand: uvicorn main:app --host 0.0.0.0 --port 10000
+    envVars:
+      - key: SIMILARITY_THRESHOLD
+        value: "0.3"
