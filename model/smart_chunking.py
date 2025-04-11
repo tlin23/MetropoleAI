@@ -30,7 +30,8 @@ except OSError:
     nlp = spacy.load("en_core_web_sm")
 
 # Load tokenizer for token counting
-tokenizer = AutoTokenizer.from_pretrained("sentence-transformers/all-MiniLM-L6-v2")
+#tokenizer = AutoTokenizer.from_pretrained("sentence-transformers/all-MiniLM-L6-v2")
+tokenizer = AutoTokenizer.from_pretrained("sentence-transformers/all-mpnet-base-v2")
 
 # Define section heading patterns
 SECTION_HEADING_PATTERNS = [

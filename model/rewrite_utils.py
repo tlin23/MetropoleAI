@@ -7,10 +7,13 @@ import logging
 import httpx
 from typing import Optional, List, Dict, Union
 from model.prompts import SYSTEM_PROMPT, get_user_prompt, get_user_prompt_multi
+from dotenv import load_dotenv
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+load_dotenv()  # Loads variables from .env into environment
 
 # Get API token from environment variable
 HF_API_TOKEN = os.getenv("HF_TOKEN")
