@@ -43,6 +43,7 @@ node_modules/
 
 # Project specific
 index/
+model/index/
 model/finetuned-llm/
 *.log
 service_account.json
@@ -82,5 +83,6 @@ htmlcov/
 .cache
 nosetests.xml
 coverage.xml
+*.cover
 *.cover
 .hypothesis/
